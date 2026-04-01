@@ -20,7 +20,7 @@ truststore.inject_into_ssl()
 
 # Configuracao base da API.
 BASE_URL = "https://api.cubeanalytics.autostoresystem.com/v1"
-TOKEN = "pW32GPWhY18r8kazjPMO3lhUmRfEMeOhsQ39e7bEBa_taZ78SrgMwzLrTM7NXLmi"
+TOKEN = "7naMGifeTcUaxbMpmGswWkHP2Pr4ef1UI3Ayn6b_u1uKJ4AOHCX-SfGoEkUQAc-S"
 HEADERS = {"API-Authorization": f"Token {TOKEN}"}
 DEFAULT_YEAR = datetime.now().year
 EXPORT_FILE = r"c:\base\API_AUTOSTORE\api_autostore_export_2026.xlsx"
