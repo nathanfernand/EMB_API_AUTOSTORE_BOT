@@ -22,8 +22,6 @@ truststore.inject_into_ssl()
 BASE_URL = "https://api.cubeanalytics.autostoresystem.com/v1"
 TOKEN = "7naMGifeTcUaxbMpmGswWkHP2Pr4ef1UI3Ayn6b_u1uKJ4AOHCX-SfGoEkUQAc-S"
 HEADERS = {"API-Authorization": f"Token {TOKEN}"}
-DEFAULT_YEAR = datetime.now().year
-EXPORT_FILE = r"c:\base\API_AUTOSTORE\api_autostore_export_2026.xlsx"
 
 
 def api_get(url: str, *, headers: dict, timeout: int) -> requests.Response:
@@ -154,77 +152,6 @@ class ActionsPage(tk.Frame):
 		)
 		self.update_all_btn.pack(side="left")
 
-		primary_btn_row = tk.Frame(controls_box)
-		primary_btn_row.pack(fill="x")
-
-		secondary_btn_row = tk.Frame(controls_box)
-		secondary_btn_row.pack(fill="x", pady=(10, 0))
-
-		self.bin_btn = tk.Button(
-			primary_btn_row,
-			text="Atualizar dados de Bin presentations",
-			font=("Segoe UI", 11),
-			command=self.start_bin_update,
-		)
-		self.bin_btn.pack(side="left", padx=(0, 10))
-
-		self.uptime_btn = tk.Button(
-			primary_btn_row,
-			text="Atualizar dados de Uptime",
-			font=("Segoe UI", 11),
-			command=self.start_uptime_update,
-		)
-		self.uptime_btn.pack(side="left")
-
-		self.robot_errors_btn = tk.Button(
-			secondary_btn_row,
-			text="Robot Errors",
-			font=("Segoe UI", 11),
-			command=self.start_robot_errors_update,
-		)
-		self.robot_errors_btn.pack(side="left", padx=(0, 10))
-
-		self.robot_mtbf_btn = tk.Button(
-			secondary_btn_row,
-			text="Robot MTBF",
-			font=("Segoe UI", 11),
-			command=self.start_robot_mtbf_update,
-		)
-		self.robot_mtbf_btn.pack(side="left", padx=(0, 10))
-
-		self.incidents_btn = tk.Button(
-			secondary_btn_row,
-			text="Incidents",
-			font=("Segoe UI", 11),
-			command=self.start_incidents_update,
-		)
-		self.incidents_btn.pack(side="left", padx=(0, 10))
-
-		self.uptime_trend_btn = tk.Button(
-			secondary_btn_row,
-			text="Uptime Trend",
-			font=("Segoe UI", 11),
-			command=self.start_uptime_trend_update,
-		)
-		self.uptime_trend_btn.pack(side="left")
-
-		year_box = tk.Frame(primary_btn_row)
-		year_box.pack(side="right")
-
-		year_label = tk.Label(year_box, text="Ano:", font=("Segoe UI", 10, "bold"))
-		year_label.pack(side="left", padx=(0, 6))
-
-		self.year_var = tk.StringVar(value=str(DEFAULT_YEAR))
-		self.year_spin = tk.Spinbox(
-			year_box,
-			from_=2000,
-			to=2100,
-			textvariable=self.year_var,
-			width=6,
-			font=("Segoe UI", 10),
-		)
-		self.year_spin.pack(side="left")
-
 		self.status_var = tk.StringVar(value="Status: Aguardando")
 		self.status_label = tk.Label(self, textvariable=self.status_var, font=("Segoe UI", 10, "bold"), fg="#555555")
 		self.status_label.grid(row=2, column=0, sticky="e", padx=20)
@@ -260,55 +187,32 @@ class ActionsPage(tk.Frame):
 		"""Liga/desliga controles enquanto uma atualizacao estiver em execucao."""
 		state = "disabled" if busy else "normal"
 		self.update_all_btn.configure(state=state)
-		self.bin_btn.configure(state=state)
-		self.uptime_btn.configure(state=state)
-		self.robot_errors_btn.configure(state=state)
-		self.robot_mtbf_btn.configure(state=state)
-		self.incidents_btn.configure(state=state)
-		self.uptime_trend_btn.configure(state=state)
 		self.back_btn.configure(state=state)
-		self.year_spin.configure(state=state)
 
-	def get_selected_year(self) -> int:
-		"""Valida o ano informado pelo usuario."""
-		raw = self.year_var.get().strip()
-		if not raw.isdigit() or len(raw) != 4:
-			raise ValueError("Ano invalido. Informe um ano com 4 digitos, por exemplo 2026.")
-
-		year = int(raw)
-		if year < 2000 or year > 2100:
-			raise ValueError("Ano fora do intervalo permitido (2000 a 2100).")
-		return year
-
-	def start_update_all(self) -> None:
-		"""Inicia atualizacao de todos os dados de uma vez usando o arquivo fixo."""
-		try:
-			selected_year = self.get_selected_year()
-		except ValueError as exc:
-			self.append_log(f"Erro: {exc}")
-			messagebox.showerror("Ano invalido", str(exc))
-			return
-
-		if not os.path.exists(EXPORT_FILE):
-			messagebox.showerror(
-				"Arquivo nao encontrado",
-				f"O arquivo de exportacao nao foi encontrado:\n{EXPORT_FILE}",
+	def start_update_all(self, excel_path: str | None = None) -> None:
+		"""Seleciona o Excel de destino e inicia a atualizacao de todas as abas."""
+		if excel_path is None:
+			excel_path = filedialog.askopenfilename(
+				title="Selecione o arquivo Excel para atualizar",
+				filetypes=[("Excel", "*.xlsx")],
 			)
+		if not excel_path:
+			self.append_log("Operacao cancelada: nenhum arquivo Excel selecionado.")
 			return
 
 		self.set_busy(True)
 		self.controller.log_queue.put(("status", "Executando", "#0B5ED7"))
-		self.controller.log_queue.put(("log", f"Ano selecionado: {selected_year}"))
-		self.controller.log_queue.put(("log", f"Arquivo: {EXPORT_FILE}"))
+		self.controller.log_queue.put(("log", "Coleta configurada para todos os anos disponíveis na API."))
+		self.controller.log_queue.put(("log", f"Arquivo selecionado: {excel_path}"))
 
 		self.controller.worker_thread = threading.Thread(
 			target=self.run_update_all,
-			args=(selected_year,),
+			args=(excel_path,),
 			daemon=True,
 		)
 		self.controller.worker_thread.start()
 
-	def run_update_all(self, selected_year: int) -> None:
+	def run_update_all(self, excel_path: str) -> None:
 		"""Coleta todos os dados da API e grava todas as abas no Excel de uma vez."""
 		try:
 			installation_id = get_installation_id(self.controller.log_queue)
@@ -324,14 +228,14 @@ class ActionsPage(tk.Frame):
 
 			sheets: dict[str, pd.DataFrame] = {}
 			for sheet_name, log_label, fetcher in sections:
-				self.controller.log_queue.put(("log", f"Coletando {log_label} ({selected_year})..."))
-				df = fetcher(installation_id, selected_year, self.controller.log_queue)
+				self.controller.log_queue.put(("log", f"Coletando {log_label} para todos os anos..."))
+				df = fetcher(installation_id, None, self.controller.log_queue)
 				if df.empty:
-					self.controller.log_queue.put(("log", f"Aviso: nenhum dado para '{sheet_name}' em {selected_year}."))
+					self.controller.log_queue.put(("log", f"Aviso: nenhum dado para '{sheet_name}'."))
 				sheets[sheet_name] = df
 
 			update_excel_all_sheets(
-				file_path=EXPORT_FILE,
+				file_path=excel_path,
 				sheets=sheets,
 				log_queue=self.controller.log_queue,
 			)
@@ -345,92 +249,6 @@ class ActionsPage(tk.Frame):
 		finally:
 			self.controller.log_queue.put(("done",))
 
-	def start_bin_update(self) -> None:
-		self.start_update("bin")
-
-	def start_uptime_update(self) -> None:
-		self.start_update("uptime")
-
-	def start_robot_errors_update(self) -> None:
-		self.start_update("robot_errors")
-
-	def start_robot_mtbf_update(self) -> None:
-		self.start_update("robot_mtbf")
-
-	def start_incidents_update(self) -> None:
-		self.start_update("incidents")
-
-	def start_uptime_trend_update(self) -> None:
-		self.start_update("uptime_trend")
-
-	def start_update(self, action: str) -> None:
-		"""Inicia o fluxo da acao selecionada em thread separada."""
-		try:
-			selected_year = self.get_selected_year()
-		except ValueError as exc:
-			self.append_log(f"Erro: {exc}")
-			messagebox.showerror("Ano invalido", str(exc))
-			return
-
-		excel_path = filedialog.askopenfilename(
-			title="Selecione o arquivo Excel",
-			filetypes=[("Excel", "*.xlsx")],
-		)
-		if not excel_path:
-			self.append_log("Operacao cancelada: nenhum arquivo Excel selecionado.")
-			return
-
-		self.set_busy(True)
-		self.controller.log_queue.put(("status", "Executando", "#0B5ED7"))
-		self.controller.log_queue.put(("log", f"Ano selecionado: {selected_year}"))
-		self.controller.log_queue.put(("log", f"Arquivo selecionado: {excel_path}"))
-
-		self.controller.worker_thread = threading.Thread(
-			target=self.run_update,
-			args=(action, excel_path, selected_year),
-			daemon=True,
-		)
-		self.controller.worker_thread.start()
-
-	def run_update(self, action: str, excel_path: str, selected_year: int) -> None:
-		"""Executa coleta + escrita em Excel sem bloquear a interface."""
-		try:
-			installation_id = get_installation_id(self.controller.log_queue)
-
-			action_settings = {
-				"bin": ("dados diarios de Bin presentations", fetch_bin_daily_data, "BinPresentations"),
-				"uptime": ("dados diarios de Uptime", fetch_uptime_daily_data, "Uptime"),
-				"robot_errors": ("dados de Robot Errors", fetch_robot_errors_data, "RobotErrors"),
-				"robot_mtbf": ("dados de Robot MTBF", fetch_robot_mtbf_data, "RobotMTBF"),
-				"incidents": ("dados de Incidents", fetch_incidents_data, "Incidents"),
-				"uptime_trend": ("dados de Uptime Trend", fetch_uptime_trend_data, "UptimeTrend"),
-			}
-
-			if action not in action_settings:
-				raise RuntimeError(f"Acao nao suportada: {action}")
-
-			log_label, fetcher, sheet_name = action_settings[action]
-			self.controller.log_queue.put(("log", f"Coletando {log_label} ({selected_year})..."))
-			df = fetcher(installation_id, selected_year, self.controller.log_queue)
-
-			if df.empty:
-				raise RuntimeError(f"Nenhum dado encontrado para {selected_year}.")
-
-			update_excel_safely(
-				file_path=excel_path,
-				sheet_name=sheet_name,
-				data=df,
-				log_queue=self.controller.log_queue,
-			)
-
-			self.controller.log_queue.put(("status", "Concluido", "#198754"))
-			self.controller.log_queue.put(("log", "Processo finalizado com sucesso."))
-		except Exception as exc:
-			self.controller.log_queue.put(("status", "Erro", "#DC3545"))
-			self.controller.log_queue.put(("log", f"Erro: {exc}"))
-			self.controller.log_queue.put(("error_dialog", str(exc)))
-		finally:
-			self.controller.log_queue.put(("done",))
 
 
 # ======================
@@ -460,13 +278,25 @@ def fetch_paginated_results(url: str, timeout: int = 60) -> list[dict]:
 	return records
 
 
-def filter_records_by_year(records: list[dict], year: int) -> list[dict]:
-	"""Filtra registros pelo ano usando o campo date do payload."""
+def as_mapping(value: object) -> dict:
+	"""Normaliza objetos da API que podem vir como dicionario ou lista."""
+	if isinstance(value, dict):
+		return value
+	if isinstance(value, list):
+		return next((item for item in value if isinstance(item, dict)), {})
+	return {}
+
+
+
+def filter_records_by_year(records: list[dict], year: int | None) -> list[dict]:
+	"""Filtra registros pelo ano; com None, mantém todos os anos disponíveis."""
+	if year is None:
+		return records
 	year_str = str(year)
 	return [record for record in records if record.get("date", "").startswith(year_str)]
 
 
-def fetch_bin_daily_data(installation_id: str, year: int, log_queue: queue.Queue) -> pd.DataFrame:
+def fetch_bin_daily_data(installation_id: str, year: int | None, log_queue: queue.Queue) -> pd.DataFrame:
 	"""Coleta e consolida Bin Presentations diario para o ano informado."""
 	url = f"{BASE_URL}/installations/{installation_id}/bin-presentations/"
 	records = filter_records_by_year(fetch_paginated_results(url), year)
@@ -510,7 +340,7 @@ def fetch_bin_daily_data(installation_id: str, year: int, log_queue: queue.Queue
 		return pd.DataFrame()
 
 
-def fetch_uptime_daily_data(installation_id: str, year: int, log_queue: queue.Queue) -> pd.DataFrame:
+def fetch_uptime_daily_data(installation_id: str, year: int | None, log_queue: queue.Queue) -> pd.DataFrame:
 	"""Coleta e consolida Uptime diario para o ano informado."""
 	url = f"{BASE_URL}/installations/{installation_id}/uptime/"
 	records = filter_records_by_year(fetch_paginated_results(url), year)
@@ -552,7 +382,7 @@ def fetch_uptime_daily_data(installation_id: str, year: int, log_queue: queue.Qu
 		return pd.DataFrame()
 
 
-def fetch_robot_errors_data(installation_id: str, year: int, log_queue: queue.Queue) -> pd.DataFrame:
+def fetch_robot_errors_data(installation_id: str, year: int | None, log_queue: queue.Queue) -> pd.DataFrame:
 	"""Coleta Robot Errors e expande cada erro em uma linha para o ano informado."""
 	url = f"{BASE_URL}/installations/{installation_id}/robot-errors/"
 	records = filter_records_by_year(fetch_paginated_results(url), year)
@@ -582,7 +412,7 @@ def fetch_robot_errors_data(installation_id: str, year: int, log_queue: queue.Qu
 	return df
 
 
-def fetch_robot_mtbf_data(installation_id: str, year: int, log_queue: queue.Queue) -> pd.DataFrame:
+def fetch_robot_mtbf_data(installation_id: str, year: int | None, log_queue: queue.Queue) -> pd.DataFrame:
 	"""Coleta Robot MTBF e expande o detalhe de tempo ativo por robo no ano informado."""
 	url = f"{BASE_URL}/installations/{installation_id}/robot-mtbf/"
 	records = filter_records_by_year(fetch_paginated_results(url), year)
@@ -593,8 +423,8 @@ def fetch_robot_mtbf_data(installation_id: str, year: int, log_queue: queue.Queu
 		if not date_value:
 			continue
 
-		result = record.get("result", {})
-		summary = result.get("robot_mtbf", {})
+		result = as_mapping(record.get("result", {}))
+		summary = as_mapping(result.get("robot_mtbf", {}))
 		robot_active_times = result.get("robot_active_times", [])
 		base_row = {
 			"date": date_value,
@@ -631,7 +461,7 @@ def fetch_robot_mtbf_data(installation_id: str, year: int, log_queue: queue.Queu
 	return df
 
 
-def fetch_incidents_data(installation_id: str, year: int, log_queue: queue.Queue) -> pd.DataFrame:
+def fetch_incidents_data(installation_id: str, year: int | None, log_queue: queue.Queue) -> pd.DataFrame:
 	"""Coleta Incidents e expande cada incidente em uma linha para o ano informado."""
 	url = f"{BASE_URL}/installations/{installation_id}/incidents/"
 	records = filter_records_by_year(fetch_paginated_results(url), year)
@@ -642,7 +472,9 @@ def fetch_incidents_data(installation_id: str, year: int, log_queue: queue.Queue
 		if not date_value:
 			continue
 
-		for incident in record.get("result", {}).get("incidents", []):
+		result = as_mapping(record.get("result", {}))
+		for incident in result.get("incidents", []):
+			incident = as_mapping(incident)
 			details_display_name = incident.get("details_display_name") or []
 			row = {
 				"date": date_value,
@@ -663,7 +495,7 @@ def fetch_incidents_data(installation_id: str, year: int, log_queue: queue.Queue
 	return df
 
 
-def fetch_uptime_trend_data(installation_id: str, year: int, log_queue: queue.Queue) -> pd.DataFrame:
+def fetch_uptime_trend_data(installation_id: str, year: int | None, log_queue: queue.Queue) -> pd.DataFrame:
 	"""Coleta Uptime Trend e retorna uma linha por data para o ano informado."""
 	url = f"{BASE_URL}/installations/{installation_id}/uptime/trend/"
 	records = filter_records_by_year(fetch_paginated_results(url), year)
@@ -674,7 +506,8 @@ def fetch_uptime_trend_data(installation_id: str, year: int, log_queue: queue.Qu
 		if not date_value:
 			continue
 
-		trend = record.get("result", {}).get("uptime_trend", {})
+		result = as_mapping(record.get("result", {}))
+		trend = as_mapping(result.get("uptime_trend", {}))
 		rows.append(
 			{
 				"date": date_value,

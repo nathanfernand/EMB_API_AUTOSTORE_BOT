@@ -156,6 +156,34 @@ class NewEndpointFetchTests(unittest.TestCase):
 		self.assertEqual(df.loc[0, "week"], 12)
 		self.assertEqual(df.loc[0, "short_term_trend"], "DOWN")
 
+	def test_fetch_uptime_trend_data_accepts_list_wrapped_result(self):
+		responses = [
+			FakeResponse(
+				{
+					"results": [
+						{
+							"date": "2026-08-21",
+							"result": [
+								{
+									"uptime_trend": [
+										{"week": 34, "year": 2026, "short_term_trend": "UP"}
+									]
+								}
+							],
+						}
+					],
+					"next": None,
+				}
+			)
+		]
+
+		with patch("main.api_get", side_effect=responses):
+			df = main.fetch_uptime_trend_data("installation", 2026, queue.Queue())
+
+		self.assertEqual(len(df), 1)
+		self.assertEqual(df.loc[0, "week"], 34)
+		self.assertEqual(df.loc[0, "short_term_trend"], "UP")
+
 
 if __name__ == "__main__":
 	unittest.main()

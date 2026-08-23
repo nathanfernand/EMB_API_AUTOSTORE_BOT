@@ -14,19 +14,14 @@ Aplicacao Tkinter para consultar a API Cube Analytics do AutoStore e exportar os
 
 ## Opcoes disponiveis na UI
 
-- Atualizar dados de Bin presentations
-- Atualizar dados de Uptime
-- Robot Errors
-- Robot MTBF
-- Incidents
-- Uptime Trend
+- Atualizar Tudo: solicita o arquivo Excel e atualiza todas as abas de uma vez
 
 Todas as opcoes:
 
 - usam o mesmo `installation_id` obtido automaticamente da API
 - usam o ano informado na UI para filtrar o campo `date`
 - executam em thread separada
-- escrevem em uma aba dedicada do Excel selecionado
+- escrevem nas abas dedicadas do Excel selecionado
 
 ## Utilitarios CLI por endpoint
 
@@ -58,6 +53,13 @@ O projeto tambem possui scripts separados por endpoint:
 ## Como executar manualmente
 
 1. Ative a virtualenv do projeto.
+
+## Executaveis Windows
+
+- `dist/API_AUTOSTORE.exe`: abre a aplicacao normalmente.
+- `dist/API_AUTOSTORE_AUTO_UPDATE.exe`: dispara automaticamente o fluxo `Atualizar Tudo` e grava sempre em `C:\base\BI_NATHAN\api_autostore_export.xlsx`.
+
+O fluxo `Atualizar Tudo` coleta todos os anos disponiveis nas paginas da API e atualiza as seis abas no arquivo escolhido.
 2. Execute a UI:
 
 ```powershell
